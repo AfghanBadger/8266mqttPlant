@@ -26,8 +26,8 @@
 #include <Wire.h>
 
 //Defining network variables
-const char* ssid = "ssid";
-const char* password = "passwd";
+const char* ssid = "Zwyciestwa";
+const char* password = "mieszkanienumer6";
 const char* mqtt_server = "192.168.1.39";
 
 //wifi and mqtt
@@ -36,6 +36,11 @@ PubSubClient client(espClient);
 
 //Pins used
 const int analogMeasurePin = PIN_A0;
+
+//mqtt send another message
+unsigned long previousMillis = 0;
+unsigned long currentMillis;
+
 
 void setup_wifi() {
   delay(10);
@@ -80,13 +85,13 @@ void callback(char* topic, byte* message, unsigned int length) {
 
       //parsing the result
       char msg[10];
-      sprintf(msg,"%d%%",result);
+      sprintf(msg,"%d",result);
       
       //debug
       Serial.print((result));Serial.println("%");
 
       //publishing the result
-      client.publish("measure/humidity",msg); // output visible on /measure/humidity
+      client.publish("moisture/sensor1",msg); // output visible on /measure/humidity
 
       /*
         Rasp should log the value or at least show it somehow (somehow nice)
@@ -115,6 +120,23 @@ void reconnect() {
   }
 }
 
+void measure(){
+  Serial.print(" -> Humidity: ");
+      
+      //measuring the result
+      const int result = (1000 - analogRead(analogMeasurePin))/10;
+
+      //parsing the result
+      char msg[10];
+      sprintf(msg,"%d",result);
+      
+      //debug
+      Serial.print((result));Serial.println("%");
+
+      //publishing the result
+      client.publish("moisture/sensor1",msg);
+}
+
 void setup() {
 
   Serial.begin(115200);
@@ -125,10 +147,20 @@ void setup() {
   //setup pins
   pinMode(analogMeasurePin,INPUT);
 
+    
+
 }
 
 
 void loop() {
+
+  currentMillis = millis();
+
+//update readings every 30 seconds
+  if(currentMillis-previousMillis>=30000){
+    measure();
+    previousMillis=currentMillis;
+  }
 
   if (!client.connected()) {
     reconnect();
